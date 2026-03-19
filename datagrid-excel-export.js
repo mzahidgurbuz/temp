@@ -6,12 +6,16 @@
     DevExpress.excelExporter.exportDataGrid({
         component: e.component,
         worksheet: worksheet
-    }).then(function () {
+    })
+    .then(function () {
 
         const detailGrids = [];
 
-        $(".dx-master-detail-row .dx-datagrid").each(function () {
+        // 🔥 artık direkt class ile yakalıyoruz
+        $(".dx-master-detail-row .detail-grid").each(function () {
+
             const grid = $(this).dxDataGrid("instance");
+
             if (grid) {
                 detailGrids.push(grid);
             }
@@ -20,13 +24,20 @@
         let chain = Promise.resolve();
 
         detailGrids.forEach(function(detailGrid) {
+
             chain = chain.then(function () {
+
                 return DevExpress.excelExporter.exportDataGrid({
                     component: detailGrid,
                     worksheet: worksheet,
-                    topLeftCell: { row: worksheet.rowCount + 1, column: 2 }
+                    topLeftCell: { 
+                        row: worksheet.rowCount + 1, 
+                        column: 2 
+                    }
                 });
+
             });
+
         });
 
         return chain;
