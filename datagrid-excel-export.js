@@ -1,34 +1,41 @@
-onExporting: async function(e) {
+ function onExporting(e) {
 
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Users");
 
-    await DevExpress.excelExporter.exportDataGrid({
+    DevExpress.excelExporter.exportDataGrid({
         component: e.component,
-        worksheet: worksheet,
-        autoFilterEnabled: true
-    });
+        worksheet: worksheet
+    }).then(function () {
 
-    const detailGrids = e.component.getView("rowsView")._rows
-        .filter(r => r.rowType === "detail");
+        const detailGrids = [];
 
-    for (const row of detailGrids) {
-
-        const detailGrid = $(row.rowElement)
-            .find(".dx-datagrid")
-            .dxDataGrid("instance");
-
-        await DevExpress.excelExporter.exportDataGrid({
-            component: detailGrid,
-            worksheet: worksheet,
-            topLeftCell: { row: worksheet.rowCount + 1, column: 2 }
+        $(".dx-master-detail-row .dx-datagrid").each(function () {
+            const grid = $(this).dxDataGrid("instance");
+            if (grid) {
+                detailGrids.push(grid);
+            }
         });
 
-    }
+        let chain = Promise.resolve();
 
-    workbook.xlsx.writeBuffer().then(function(buffer) {
+        detailGrids.forEach(function(detailGrid) {
+            chain = chain.then(function () {
+                return DevExpress.excelExporter.exportDataGrid({
+                    component: detailGrid,
+                    worksheet: worksheet,
+                    topLeftCell: { row: worksheet.rowCount + 1, column: 2 }
+                });
+            });
+        });
+
+        return chain;
+    })
+    .then(function () {
+        return workbook.xlsx.writeBuffer();
+    })
+    .then(function (buffer) {
         saveAs(new Blob([buffer]), "Users.xlsx");
     });
-
     e.cancel = true;
 }
